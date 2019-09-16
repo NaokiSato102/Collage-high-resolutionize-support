@@ -1,0 +1,1 @@
+# Collage-high-resolutionize-support

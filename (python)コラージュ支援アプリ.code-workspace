@@ -5,6 +5,6 @@
 		}
 	],
 	"settings": {
-		"python.linting.pylintArgs":  ["--extension-pkg-whitelist=cv2"],	
+		//"python.linting.pylintArgs":  ["--extension-pkg-whitelist=cv2"],	
 	}
 }

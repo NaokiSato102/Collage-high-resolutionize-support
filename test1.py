@@ -4,6 +4,24 @@
 # -*- coding: utf-8 -*-
 import cv2
 
+def wirte_kp_list(keypoint hoge, str name = 'kp'):
+	f = open(name+'.csv', 'w')
+	fileprint = "x[pic],y[pic],size,ang[deg],response,octave,class_id\n"
+	for x in hoge:	
+		fileprint += (
+			str(x.pt[0]) + "," + 
+			str(x.pt[1]) + "," +
+			str(x.size) + "," +
+			str(x.angle) + "," +
+			str(x.response) + "," +
+			str(x.octave) + "," +
+			str(x.class_id) + "\n"
+		)	
+		#特徴点の位置をx､y分けて表示
+	f.write(fileprint)
+	f.close()
+
+
 # 画像1
 img1 = cv2.imread("img1.jpg")
 # 画像2
@@ -40,40 +58,14 @@ for x in kp1:
 	)#特徴点の位置をx､y分けて表示
 f.close()'''
 
-f = open('kp1.csv', 'w')
-fileprint = "x[pic],y[pic],size,ang[deg],response,octave,class_id\n"
-for x in kp1:	
-	fileprint += (
-		str(x.pt[0]) + "," + 
-		str(x.pt[1]) + "," +
-		str(x.size) + "," +
-		str(x.angle) + "," +
-		str(x.response) + "," +
-		str(x.octave) + "," +
-		str(x.class_id) + "\n"
-	)	
-	#特徴点の位置をx､y分けて表示
-f.write(fileprint)
-f.close()
 
-f = open('kp2.csv', 'w')
-fileprint = "x[pic],y[pic],size,ang[deg],response,octave,class_id\n"
-for x in kp2:	
-	fileprint += (
-		str(x.pt[0]) + "," + 
-		str(x.pt[1]) + "," +
-		str(x.size) + "," +
-		str(x.angle) + "," +
-		str(x.response) + "," +
-		str(x.octave) + "," +
-		str(x.class_id) + "\n"
-	)	
-	#特徴点の位置をx､y分けて表示
-f.write(fileprint)
-f.close()
+wirte_kp_list(kp1,'kp1')
 
-'''
-# 対応する特徴点同士を描画
+wirte_kp_list(kp2,'kp2')
+
+
+
+'''# 対応する特徴点同士を描画
 img3 = cv2.drawMatchesKnn(img1, kp1, img2, kp2, good, None, flags=2)
 
 # 画像表示
@@ -81,5 +73,4 @@ img3 = cv2.drawMatchesKnn(img1, kp1, img2, kp2, good, None, flags=2)
 cv2.imwrite('img3.png', img3)
 # キー押下で終了
 cv2.waitKey(0)
-cv2.destroyAllWindows()
-'''
+cv2.destroyAllWindows()'''

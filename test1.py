@@ -4,7 +4,7 @@
 # -*- coding: utf-8 -*-
 import cv2
 
-def wirte_kp_list(keypoint hoge, str name = 'kp'):
+def wirte_kp_list(hoge, name = 'kp'):
 	f = open(name+'.csv', 'w')
 	fileprint = "x[pic],y[pic],size,ang[deg],response,octave,class_id\n"
 	for x in hoge:	
@@ -47,16 +47,6 @@ good = []
 for m, n in matches:
 	if m.distance < ratio * n.distance:
 		good.append([m])
-
-'''
-f = open('list.txt', 'w')
-for x in kp1:
-    #f.write(str(x.pt) + "\n") #特徴点の位置をタプルで表示
-	f.write(
-		str(x.pt[0]) + "\t" + 
-		str(x.pt[1]) + "\n"
-	)#特徴点の位置をx､y分けて表示
-f.close()'''
 
 
 wirte_kp_list(kp1,'kp1')

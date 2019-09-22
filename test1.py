@@ -19,6 +19,7 @@ def wirte_kp_list(hoge, name = 'kp'):
 		)	
 		#特徴点の位置をx､y分けて表示
 	f.write(fileprint)
+	fileprint = ""
 	f.close()
 
 
@@ -50,9 +51,12 @@ for m, n in matches:
 
 
 wirte_kp_list(kp1,'kp1')
-
 wirte_kp_list(kp2,'kp2')
 
+f = open('list.txt', 'w')
+for x in des1:
+    f.writelines(str(x) + "\n")
+f.close()
 
 
 '''# 対応する特徴点同士を描画

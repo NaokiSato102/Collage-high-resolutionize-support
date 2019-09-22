@@ -3,6 +3,8 @@
 
 # -*- coding: utf-8 -*-
 import cv2
+import numpy as np
+
 
 def wirte_kp_list(hoge, name = 'kp'):
 	f = open(name+'.csv', 'w')
@@ -53,11 +55,41 @@ for m, n in matches:
 wirte_kp_list(kp1,'kp1')
 wirte_kp_list(kp2,'kp2')
 
-f = open('list.txt', 'w')
-for x in des1:
-    f.writelines(str(x) + "\n")
+np.savetxt('des1.csv',des1,fmt = '%5d',delimiter = ',')
+np.savetxt('des2.csv',des2,fmt = '%5d',delimiter = ',')
+
+
+
+f = open('matches.csv', 'w')
+fileprint = "distance1,distance2,queryIdx1,queryIdx2,trainIdx1,trainIdx2,imgIdx1,imgIdx2\n"
+for m, n in matches:
+	fileprint += (
+		str( m.distance ) + "," + 
+		str( n.distance ) + "," + 
+		str( m.queryIdx ) + "," +
+		str( n.queryIdx ) + "," +
+		str( m.trainIdx ) + "," +
+		str( n.trainIdx ) + "," +
+		str( m.imgIdx   ) + "," +
+		str( n.imgIdx   ) + "\n"
+	)
+f.write(fileprint)
+fileprint = ""
 f.close()
 
+print(type(good))
+'''f = open('goog.csv', 'w')
+fileprint = "distance,queryIdx,trainIdx,imgIdx\n"
+for m in good:
+	fileprint += (
+		str( m.distance ) + "," + 
+		str( m.queryIdx ) + "," +
+		str( m.trainIdx ) + "," +
+		str( m.imgIdx   ) + "\n"
+	)
+f.write(fileprint)
+fileprint = ""
+f.close()'''
 
 '''# 対応する特徴点同士を描画
 img3 = cv2.drawMatchesKnn(img1, kp1, img2, kp2, good, None, flags=2)

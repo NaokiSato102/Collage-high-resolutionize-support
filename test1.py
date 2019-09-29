@@ -1,31 +1,13 @@
-# https://qiita.com/hitomatagi/items/caac014b7ab246faf6b1 より。
-
-
-# -*- coding: utf-8 -*-
+import numpy as np
 import cv2
+from matplotlib import pyplot as plt
 
-def wirte_kp_list(hoge, name = 'kp'):
-	f = open(name+'.csv', 'w')
-	fileprint = "x[pic],y[pic],size,ang[deg],response,octave,class_id\n"
-	for x in hoge:	
-		fileprint += (
-			str(x.pt[0]) + "," + 
-			str(x.pt[1]) + "," +
-			str(x.size) + "," +
-			str(x.angle) + "," +
-			str(x.response) + "," +
-			str(x.octave) + "," +
-			str(x.class_id) + "\n"
-		)	
-		#特徴点の位置をx､y分けて表示
-	f.write(fileprint)
-	f.close()
-
+MIN_MATCH_COUNT = 10
 
 # 画像1
-img1 = cv2.imread("img1.jpg")
+img2 = cv2.imread("img1.png")
 # 画像2
-img2 = cv2.imread("img2.jpg")
+img1 = cv2.imread("img2.png")
 
 # A-KAZE検出器の生成
 akaze = cv2.AKAZE_create()
@@ -41,26 +23,38 @@ bf = cv2.BFMatcher()
 # 特徴量ベクトル同士をBrute-Force&KNNでマッチング
 matches = bf.knnMatch(des1, des2, k=2)
 
-# データを間引きする
-ratio = 0.3
+
+# store all the good matches as per Lowe's ratio test.
 good = []
-for m, n in matches:
-	if m.distance < ratio * n.distance:
-		good.append([m])
+for m,n in matches:
+	if m.distance < 0.7*n.distance:
+		good.append(m)
 
+if len(good)>MIN_MATCH_COUNT:
+	src_pts = np.float32([ kp1[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
+	dst_pts = np.float32([ kp2[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
 
-wirte_kp_list(kp1,'kp1')
+	M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
+	matchesMask = mask.ravel().tolist()
+	
+	h,w = img1.shape[:2]
+	#h = img1.shape[0]
+	#w = img1.shape[1]
+	pts = np.float32([ [0,0],[0,h-1],[w-1,h-1],[w-1,0] ]).reshape(-1,1,2)
+	dst = cv2.perspectiveTransform(pts,M)
 
-wirte_kp_list(kp2,'kp2')
+	img2 = cv2.polylines(img2,[np.int32(dst)],True,255,3, cv2.LINE_AA)
+	cv2.imwrite('img3a.png', img2)
+else:
+	print ('hoge')
+	matchesMask = None
 
+draw_params = dict(matchColor = (0,255,0), # draw matches in green color
+	singlePointColor = None,
+	matchesMask = matchesMask, # draw only inliers
+	flags = 2)
 
+img3 = cv2.drawMatches   (img1, kp1, img2, kp2, good, None, **draw_params)
+#img3 = cv2.drawMatchesKnn(img1, kp1, img2, kp2, good, None, flags=2)
 
-'''# 対応する特徴点同士を描画
-img3 = cv2.drawMatchesKnn(img1, kp1, img2, kp2, good, None, flags=2)
-
-# 画像表示
-#cv2.imshow ('img', img3)
 cv2.imwrite('img3.png', img3)
-# キー押下で終了
-cv2.waitKey(0)
-cv2.destroyAllWindows()'''

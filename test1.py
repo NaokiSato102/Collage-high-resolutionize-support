@@ -54,6 +54,7 @@ draw_params = dict(matchColor = (0,255,0), # draw matches in green color
 	matchesMask = matchesMask, # draw only inliers
 	flags = 2)
 
-img3 = cv2.drawMatches(img1,kp1,img2,kp2,good,None,**draw_params)
+img3 = cv2.drawMatches   (img1, kp1, img2, kp2, good, None, **draw_params)
+#img3 = cv2.drawMatchesKnn(img1, kp1, img2, kp2, good, None, flags=2)
 
 cv2.imwrite('img3.png', img3)

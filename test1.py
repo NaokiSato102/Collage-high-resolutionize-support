@@ -40,22 +40,22 @@ bf = cv2.BFMatcher()
 matches = bf.knnMatch(des_orig, des_collage, k=2)
 
 # store all the good matches as per Lowe's ratio test.
-	good = []
-	for m,n in matches:
-		if m.distance < RATIO*n.distance:
-			good.append(m)
+good = []
+for m,n in matches:
+	if m.distance < RATIO*n.distance:
+		good.append(m)
 
-	if len(good)>=MIN_MATCH_COUNT:
-		orig_pts = np.float32([ kp_orig[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
-		collage_pts = np.float32([ kp_collage[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
+if len(good)>=MIN_MATCH_COUNT:
+	orig_pts = np.float32([ kp_orig[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
+	collage_pts = np.float32([ kp_collage[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
 
-		M, mask = cv2.findHomography(orig_pts, collage_pts, cv2.RANSAC,5.0)
-	
-		h,w = orig.shape[:2]
+	M, mask = cv2.findHomography(orig_pts, collage_pts, cv2.RANSAC,5.0)
 
-		converted_collage = cv2.warpPerspective(collage, np.linalg.inv(M), (w, h) )
+	h,w = orig.shape[:2]
 
-		cv2.imwrite('converted_collage.png', converted_collage)
-	
-	else:
-		print("not enough matching key point")
+	converted_collage = cv2.warpPerspective(collage, np.linalg.inv(M), (w, h) )
+
+	cv2.imwrite('converted_collage.png', converted_collage)
+
+else:
+	print("not enough matching key point")

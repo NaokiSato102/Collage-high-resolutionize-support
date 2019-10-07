@@ -1,44 +1,75 @@
 '''
 https://tat-pytone.hatenablog.com/entry/2019/03/20/195949
+を参考に
 '''
 
 import cv2 #OpenCVのインポート
 import numpy as np #numpyをnpという名前でインポート
 
 def conv_image1(img):
-	conv_img = img
-	conv_img = cv2.erode( conv_img, np.ones( (3,3),np.uint8 ), iterations = 3 )
-	conv_img = cv2.GaussianBlur(conv_img,(13,13),10,10)
-	return conv_img
+	img = cv2.erode( img, np.ones( (3,3),np.uint8 ), iterations = 3 )
+	img = cv2.GaussianBlur(img,(13,13),10,10)
+	return img
 
-def diff_compa1(edit_orig,edit_conv_collage):
-	return np.where(edit_orig == edit_conv_collage, 0, 1)
+def conv_image2(img):
+	img = cv2.erode( img, np.ones( (3,3),np.uint8 ), iterations = 3 )
+	img = cv2.GaussianBlur(img,(13,13),10,10)
+	img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+	return img
 
-def diff_compa2(edit_orig,edit_conv_collage,ratio = 5):
+#img1,img2の各要素を比較し、等しければ0、異なれば1の値を持つ配列comparisonを生成。どこまでを等しいとするかの閾値は関数によって異なる。
+def diff_compa1(img1,img2):
+	return np.where(img1 == img2, 0, 1)
+
+def diff_compa2(img1,img2,ratio = 5):
 	return np.where(
 		( 
-			( ( edit_orig - ratio ) <= edit_conv_collage ) 
+			( ( img1 - ratio ) <= img2 ) 
 			&
-			( edit_conv_collage <= ( ratio + edit_orig ) )
+			( img2 <= ( ratio + img1 ) )
 		)
 		, 0, 1
 	)
 
-orig = cv2.imread("orig.png",cv2.IMREAD_GRAYSCALE)
-conv_collage = cv2.imread("converted_collage.png",cv2.IMREAD_GRAYSCALE)
+def diff_compa3(img1,img2,ratio = 5):
+	return np.where(
+		( 
+			( img2 <= ( img1 - ratio ) ) 
+			&
+			( ( ratio + img1 ) <= img2 )
+		)
+		, 0, 1
+	)
 
-edit_orig = conv_image1(orig)
+def save_compa_img(compa):
+	if np.ndim(compa) == 3:
+		for i in range(3):
+			filename = "collage_mask_"+str(i+1)+".png"
+			cv2.imwrite(filename,compa[:,:,i]*255)
+	else:
+		cv2.imwrite("collage_mask.png",compa*255)
+
+
+
+
+
+orig = cv2.imread("orig.png")
+conv_collage = cv2.imread("converted_collage.png")
+
+edit_orig = conv_image2(orig)
 cv2.imwrite('edit_orig.png',edit_orig) 
-
-edit_conv_collage = conv_image1(conv_collage)
+edit_conv_collage = conv_image2(conv_collage)
 cv2.imwrite('edit_conv_collage.png',edit_conv_collage) 
 
-#img1,img2の各要素を比較し、等しければ0、異なれば1の値を持つ配列comparisonを生成
 
+#配列comparisonを生成
 comparison=diff_compa1(edit_orig,edit_conv_collage)
 
+save_compa_img(comparison)
 
-
+if np.ndim(comparison) == 3:#次元数が多かったら削減する。
+	comparison= np.amax(comparison,axis = 2)
+	conv_collage = cv2.cvtColor(conv_collage,cv2.COLOR_BGR2GRAY)
 
 
 #img1とcomparisonの要素の積、配列differenceを生成
@@ -48,3 +79,4 @@ comparison=diff_compa1(edit_orig,edit_conv_collage)
 difference=np.array( conv_collage*comparison ,dtype = np.uint8)
 
 cv2.imwrite('collage_difference.png',difference) #ファイル名difference.pngでdifferenceを保存
+

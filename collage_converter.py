@@ -83,6 +83,7 @@ def trim_img(img):# トリミング実行
 def collages_transform(file_name,akaze,bf,orig):
 	collages = cv2.imread(file_name)
 	if (not collages is None):
+		print("Warning：[{}]の読み込み成功".format(file_name) )
 		# 特徴量の検出と特徴量ベクトルの計算
 		kp_orig, des_orig = akaze.detectAndCompute(orig, None)
 		kp_collages, des_collages = akaze.detectAndCompute(collages, None)
@@ -113,7 +114,7 @@ def collages_transform(file_name,akaze,bf,orig):
 			print("Warning：[{}]は対応点不足".format(file_name) )
 		
 	else:
-		print("Warning：[{}]は読み込み失敗".format(file_name) )
+		print("Warning：[{}]の読み込み失敗".format(file_name) )
 
 
 def main():

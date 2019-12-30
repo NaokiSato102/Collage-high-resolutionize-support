@@ -25,103 +25,111 @@ def ex_img(img,multiple = 2):
 
 	ex_h, ex_w = int(h*multiple), int(w*multiple)
 
-	ex_img = np.ones( (ex_h, ex_w, ch), dtype=np.uint8 )
+	ex_img = np.zeros( (ex_h, ex_w, ch), dtype=np.uint8 )
 	ex_img[top:bottom, left:right, :] = img
 
 	return ex_img
 
-def trim_img(img):# トリミング実行
-	# print("[debug]縦の開始点走査開始")
-	for i in range(img.shape[0]):
-		# print("[debug]第{}層".format(i) )
-		# print( img[i,:,:] ) 
 
-		j = np.max(img[i,:,:])
-		# print("[debug]最大値は{}\n".format(j) )
-		if(j!=0):
-			# print("[debug]第{}層から開始\n".format(i) )
+def trim_img(img, calc):# トリミング実行
+	return img[calc[0]:calc[1], calc[2]:calc[3], :]
+
+
+def trim_calc(img):# トリミング計算
+	for i in range(img.shape[0]):
+		if(
+			(  0 != np.max(img[i,:,:]) ) and
+			(255 != np.min(img[i,:,:]) )
+		):
 			top = i
 			break
 
-	# print("[debug]縦の終了点走査開始")
 	for i in reversed( range(img.shape[0]) ):
-		# print("[debug]第{}層".format(i) )
-		# print( img[i,:,:] ) 
-
-		j = np.max(img[i,:,:])
-		# print("[debug]最大値は{}\n".format(j) )
-		if(j!=0):
-			# print("[debug]第{}層で終了\n".format(i) )
+		if( 
+			(  0 != np.max(img[i,:,:]) ) and
+			(255 != np.min(img[i,:,:]) ) 
+		):
 			bottom = i
 			break
-	
-	# print("[debug]左から横の開始点走査開始")
-	for i in range(img.shape[1]):
-		# print("[debug]第{}層".format(i) )
-		# print( img[:,i,:] ) 
 
-		j = np.max(img[:,i,:])
-		# print("[debug]最大値は{}\n".format(j) )
-		if(j!=0):
-			# print("[debug]左から第{}層から開始\n".format(i) )
+	for i in range(img.shape[1]):
+		if( 
+			(  0 != np.max(img[:,i,:]) ) and
+			(255 != np.min(img[:,i,:]) )
+		):
 			left = i
 			break
 
-	# print("[debug]左から横の終了点走査開始")
 	for i in reversed( range(img.shape[1]) ):
-		# print("[debug]第{}層".format(i) )
-		# print( img[:,i,:] ) 
-
-		j = np.max(img[:,i,:])
-		# print("[debug]最大値は{}\n".format(j) )
-		if(j!=0):
-			# print("[debug]縦の第{}層で終了\n".format(i) )
+		if(
+			(  0 != np.max(img[:,i,:]) ) and
+			(255 != np.min(img[:,i,:]) )
+		):
 			right = i
 			break
-	return img[top:bottom, left:right, :]
+	return top, bottom, left, right
 
-def collages_transform(file_name,akaze,bf,orig):
-	collages = cv2.imread(file_name)
-	if (not collages is None):
-		print("[{}]の読み込み成功".format(file_name) )
-		# 特徴量の検出と特徴量ベクトルの計算
-		kp_orig, des_orig = akaze.detectAndCompute(orig, None)
-		kp_collages, des_collages = akaze.detectAndCompute(collages, None)
 
-		# 特徴量ベクトル同士をBrute-Force&KNNでマッチング
-		matches = bf.knnMatch(des_orig, des_collages, k=2)
+def ct_formater():
+	# A-KAZE検出器の生成
+	akaze = cv2.AKAZE_create()
+	# Brute-Force Matcher生成
+	bf = cv2.BFMatcher()
 
-		# store all the good matches as per Lowe's ratio test.
-		good = []
-		for m,n in matches:
-			if m.distance < RATIO * n.distance:
-				good.append(m)
+	return akaze, bf
 
-		if ( len(good) >= MIN_MATCH_COUNT ):
-			orig_pts     = np.float32( [ kp_orig    [m.queryIdx].pt for m in good ] ).reshape(-1,1,2)
-			collages_pts = np.float32( [ kp_collages[m.trainIdx].pt for m in good ] ).reshape(-1,1,2)
+ 
+def collage_transformer(file_name, ctf, orig, trim_option="n"):
 
-			M, mask = cv2.findHomography(orig_pts, collages_pts, cv2.RANSAC,5.0)
-
-			h,w = orig.shape[:2]
-
-			converted_collages = cv2.warpPerspective(collages, np.linalg.inv(M), (w, h) )
-
-			cv2.imwrite('converted_'+file_name, converted_collages)
-			print("[{}]の変形完了".format(file_name) )
-
-		else:
-			print("Warning：[{}]は対応点不足".format(file_name) )
-		
-	else:
+	collage = cv2.imread(file_name)
+	if (collage is None):
 		print("Warning：[{}]の読み込み失敗".format(file_name) )
+		return 1
+
+
+	print("[{}]の読み込み成功".format(file_name) )
+	
+	#if   (trim_option == 'y'):
+	collage = trim_img(collage,trim_calc(collage) )
+	#elif (trim_option == 'n'):
+	#	pass
+	
+	# 特徴量の検出と特徴量ベクトルの計算
+	kp_orig,    des_orig    = ctf[0].detectAndCompute(orig,    None)
+	kp_collage, des_collage = ctf[0].detectAndCompute(collage, None)
+
+	# 特徴量ベクトル同士をBrute-Force&KNNでマッチング
+	matches = ctf[1].knnMatch(des_orig, des_collage, k=2)
+
+	# store all the good matches as per Lowe's ratio test.
+	good = []
+	for m,n in matches:
+		if m.distance < RATIO * n.distance:
+			good.append(m)
+
+	if ( len(good) < MIN_MATCH_COUNT ):
+		print("Warning：[{}]は対応点不足".format(file_name) )
+		return 1
+
+	orig_pts    = np.float32( [ kp_orig   [m.queryIdx].pt for m in good ] ).reshape(-1,1,2)
+	collage_pts = np.float32( [ kp_collage[m.trainIdx].pt for m in good ] ).reshape(-1,1,2)
+
+	M, mask = cv2.findHomography(orig_pts, collage_pts, cv2.RANSAC,5.0)
+
+	h,w = orig.shape[:2]
+
+	converted_collage = cv2.warpPerspective(collage, np.linalg.inv(M), (w, h) )
+
+	
+	print("[{}]の変形完了".format(file_name) )
+	return file_name, converted_collage
 
 
 def main():
 
 	file_name_list = []
 	for i in SPRT_EXT_LIST:
-		file_name_list += glob.glob("*."+i)
+		file_name_list += glob.glob("*."+i) # 拡張子リストに載っている拡張子を条件として検索しリスト化
 
 
 	if  ( 1 < len( [i for i in file_name_list if 'orig' in i] )  ):
@@ -139,25 +147,58 @@ def main():
 		return 1 
 	else:
 		print("原画の読み込みに成功")
-		cv2.imwrite("converted_orig.png",orig)# 原画の読み込みに成功したならば余白付き画像生成
-
-	# A-KAZE検出器の生成
-	akaze = cv2.AKAZE_create()
-	# Brute-Force Matcher生成
-	bf = cv2.BFMatcher()
 
 	# 成功件数カウント用
 	success_count = 0
+
+	ctf = ct_formater()
+	collages = []
+	len_fn_list = len(file_name_list)
 
 	# 処理開始
 	for index, file_name in enumerate(file_name_list,1):# 1から始まるインデックス付きでfile_name_listを走査
 		# 部品画像
 		file_name = "".join(file_name)
 
-		#print("{:>5}枚目[{}]の処理".format(index, file_name))
+		print("[{}]の変形開始{:^5}/{:^5}".format(file_name, index, len_fn_list ) )
+		result = collage_transformer(file_name, ctf, orig)
+		if( 1!= result ):
+			success_count += 1
+			collages.append(result)
+			print("[{}]の変形成功 全体{:^5}/{:^5} 成功{:^5}/{:^5}".format(
+					file_name, 
+					index, len_fn_list, 
+					success_count, len_fn_list 
+				)
+			)
+			
+		else:
+			print("[{}]の変形失敗 全体{:^5}/{:^5}".format(file_name, index, len_fn_list) )
 
-		collages_transform(file_name,akaze,bf,orig)
+	print("全行程終了  成功{:^5}/{:^5}".format(success_count, len_fn_list ) )
 
+	# トリミング計算用全合成画像作成
+	tmp_image = orig
+	for i in collages:
+		tmp_image = cv2.addWeighted(tmp_image, 0.5, i[1], 0.5, 0)
+	
+	# トリミングの実行
+	trim = trim_calc(tmp_image)
+
+
+	print("書き込み開始")
+
+	cv2.imwrite( "converted_orig.png",trim_img(orig,trim) )
+
+	for index, img in enumerate(collages,1):# 1から始まるインデックス付きでfile_name_listを走査
+		tmp_file_name = ("converted_{}.png".format( img[0].rsplit(".",1 )[0] ) )
+		cv2.imwrite(
+			tmp_file_name,
+			trim_img(img[1],trim)
+		)
+		print("[{}]の書き込み完了 {:^5}/{:^5}".format(tmp_file_name, index, success_count ) )
+	
+	print("全書き込み終了")
 
 
 if __name__ == "__main__":

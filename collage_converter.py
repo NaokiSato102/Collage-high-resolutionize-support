@@ -1,7 +1,9 @@
 import glob
 import sys
+import os
 import numpy as np
 import cv2
+import mbiocv2 as mb
 
 MIN_MATCH_COUNT = 10
 RATIO = 0.5
@@ -81,7 +83,7 @@ def ct_formater():
  
 def collage_transformer(file_name, ctf, orig, trim_option="n"):
 
-	collage = cv2.imread(file_name)
+	collage = mb.imread(file_name)
 	if (collage is None):
 		print("Warning：[{}]の読み込み失敗".format(file_name) )
 		return 1
@@ -122,26 +124,37 @@ def collage_transformer(file_name, ctf, orig, trim_option="n"):
 
 	
 	print("[{}]の変形完了".format(file_name) )
+	file_name = os.path.basename(file_name)
 	return file_name, converted_collage
 
 
 def main():
-
+	dirname = os.path.dirname(sys.argv[1] )
 	file_name_list = []
 	for i in SPRT_EXT_LIST:
-		file_name_list += glob.glob("*."+i) # 拡張子リストに載っている拡張子を条件として検索しリスト化
+		file_name_list += glob.glob( dirname + "/*." + i ) # 拡張子リストに載っている拡張子を条件として検索しリスト化 
+	 
+	if (not len(file_name_list)):
+		return 1
+	
+	tmp_list = file_name_list
+	file_name_list = []
+	for i in tmp_list:
+		file_name_list.append(os.path.basename(i) )
 
-
-	if  ( 1 < len( [i for i in file_name_list if 'orig' in i] )  ):
+		
+	
+	if ( 1 < len( [i for i in file_name_list if 'orig' in i] )  ):
 		print("Error：origが複数あります")
 		return 1
+
 	else:
 		orig_file      = [i for i in file_name_list if     'orig' in i]
 		file_name_list = [i for i in file_name_list if not 'orig' in i]
 
 
 	# 合成元画像
-	orig = ex_img( cv2.imread("".join(orig_file) ),3 )
+	orig = ex_img( mb.imread(os.path.join(dirname, "".join(orig_file) ) ),3 )
 	if (orig is None):# 原画の読み込みに失敗したならば中止
 		print("Error：原画の読み込みに失敗")
 		return 1 
@@ -158,10 +171,11 @@ def main():
 	# 処理開始
 	for index, file_name in enumerate(file_name_list,1):# 1から始まるインデックス付きでfile_name_listを走査
 		# 部品画像
+		print(f"file_nameは[{file_name}]")
 		file_name = "".join(file_name)
 
 		print("[{}]の変形開始{:^5}/{:^5}".format(file_name, index, len_fn_list ) )
-		result = collage_transformer(file_name, ctf, orig)
+		result = collage_transformer(os.path.join(dirname, "".join(file_name) ), ctf, orig)
 		if( 1!= result ):
 			success_count += 1
 			collages.append(result)
@@ -187,12 +201,13 @@ def main():
 
 
 	print("書き込み開始")
-
-	cv2.imwrite( "converted_orig.png",trim_img(orig,trim) )
+	dirname += "\\transformed\\"
+	os.makedirs(dirname, exist_ok=True)
+	mb.imwrite( os.path.join(dirname,"orig.png"), trim_img(orig,trim) )
 
 	for index, img in enumerate(collages,1):# 1から始まるインデックス付きでfile_name_listを走査
-		tmp_file_name = ("converted_{}.png".format( img[0].rsplit(".",1 )[0] ) )
-		cv2.imwrite(
+		tmp_file_name = dirname+ os.path.splitext(img[0])[0] +".png" 
+		mb.imwrite(
 			tmp_file_name,
 			trim_img(img[1],trim)
 		)

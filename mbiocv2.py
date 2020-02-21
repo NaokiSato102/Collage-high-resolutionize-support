@@ -1,6 +1,13 @@
 import numpy as np
 import cv2
 import os
+
+"""
+https://qiita.com/SKYS/items/cbde3775e2143cad7455 
+をそのまま流用。
+適切にライセンスを引き継ぐには如何にするべきか?
+"""
+
 def imread(filename, flags=cv2.IMREAD_COLOR, dtype=np.uint8):
 	try:
 		n = np.fromfile(filename, dtype)

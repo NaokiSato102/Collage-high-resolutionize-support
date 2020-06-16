@@ -5,11 +5,18 @@ import numpy as np
 import cv2
 import mbiocv2 as mb
 
+# pylint: disable=C0111
+# ↑プログラムの説明ドキュメントがないよ！というエラーの防止
+# pylint: disable=W0312
+# ↑Found indentation with tabs instead of spacesを防止
+
+# No space allowed after bracket
+
 MIN_MATCH_COUNT = 10
 RATIO = 0.5
-SPRT_EXT_LIST = ["png","jp*","bmp"]
+SPRT_EXT_LIST = ["png", "jp*", "bmp"]
 
-def ex_img(img,multiple = 2):
+def ex_img(img, multiple = 2):
 	#===========================================================
 	# 表示用の余白あり画像の作成
 	# multiple : 何倍の大きさの画像にするか
@@ -17,8 +24,8 @@ def ex_img(img,multiple = 2):
 
 	h, w, ch = img.shape
 
-	margin_h = int( (multiple - 1)*0.5*h )
-	margin_w = int( (multiple - 1)*0.5*w )
+	margin_h = int( (multiple - 1) * 0.5 * h )
+	margin_w = int( (multiple - 1) * 0.5 * w )
 
 	left   = margin_w
 	right  = margin_w + w
@@ -125,6 +132,7 @@ def collage_transformer(file_name, ctf, orig, trim_option="n"):
 	
 	print("[{}]の変形完了".format(file_name) )
 	file_name = os.path.basename(file_name)
+	print(f"{file_name}{np.linalg.det(M)}倍？") #現状仮設。後で追加機能含め本実装しよう。
 	return file_name, converted_collage
 
 

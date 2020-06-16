@@ -132,17 +132,22 @@ def collage_transformer(file_name, ctf, orig, trim_option="n"):
 	
 	print("[{}]の変形完了".format(file_name) )
 	file_name = os.path.basename(file_name)
-	print(f"{file_name}{np.linalg.det(M)}倍？") #現状仮設。後で追加機能含め本実装しよう。
+	print(f"{file_name}:{np.linalg.det(M):1.5}倍？") #現状仮設。後で追加機能含め本実装しよう。
 	return file_name, converted_collage
 
 
 def main():
 	dirname = os.path.dirname(sys.argv[1] )
 	file_name_list = []
+	
+
+
 	for i in SPRT_EXT_LIST:
 		file_name_list += glob.glob( dirname + "/*." + i ) # 拡張子リストに載っている拡張子を条件として検索しリスト化 
-	 
+
+
 	if (not len(file_name_list)):
+		input("パス取得失敗　いずれのキーを押して終了")
 		return 1
 	
 	tmp_list = file_name_list
@@ -153,7 +158,7 @@ def main():
 		
 	
 	if ( 1 < len( [i for i in file_name_list if 'orig' in i] )  ):
-		print("Error：origが複数あります")
+		input("Error：origが複数あります")
 		return 1
 
 	else:
@@ -221,7 +226,7 @@ def main():
 		)
 		print("[{}]の書き込み完了 {:^5}/{:^5}".format(tmp_file_name, index, success_count ) )
 	
-	print("全書き込み終了")
+	input("全書き込み終了")
 
 
 if __name__ == "__main__":

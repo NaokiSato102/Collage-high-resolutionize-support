@@ -113,10 +113,12 @@ def check_filename_list(filename_list):
 	if not "orig" in filename_list_no_ext:
 		raise ORIG_NOTHING
 
-	elif filename_list_no_ext.count("orig") >1:
+	elif filename_list_no_ext.count("orig") > 1:
 		raise ORIG_DUPLICATE
 
 	elif len(filename_list_no_ext) != len(set(filename_list_no_ext)):
+		duplications = sorted(set([f for f in filename_list_no_ext if filename_list_no_ext.count(f) > 1]))
+		print(f"以下が重複\n{duplications}")
 		raise FILENAME_DUPLICATE
 
 

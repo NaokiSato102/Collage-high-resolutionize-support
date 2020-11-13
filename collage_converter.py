@@ -70,16 +70,16 @@ def get_filename_list(dirname):
 
 	# 対応拡張子リストをスキャンの為に変形
 	condition = [".*"+ f for f in SPRT_EXT_LIST]
-	print(f"[debug]{'|'.join(condition)}")
+	#print(f"[debug]{'|'.join(condition)}")
 
 	# ディレクトリから種類を問わずにファイルを検索しリスト化
 	law_filename_list = os.listdir(dirname)
 	filename_list = [f for f in law_filename_list if os.path.isfile(os.path.join(dirname, f))]
-	print(f"[debug]{filename_list}")
+	#print(f"[debug]{filename_list}")
 
 	# 対応拡張子のみのリストへ加工
 	filename_list = [f for f in filename_list if re.match("|".join(condition), f)]
-	print(f"[debug]{filename_list}")
+	#print(f"[debug]{filename_list}")
 
 	return filename_list
 

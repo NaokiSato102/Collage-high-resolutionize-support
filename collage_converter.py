@@ -1,26 +1,143 @@
-import glob
+# coding:utf-8
+
+"""
+コラージュ
+"""
+
+import re
 import sys
 import os
 import numpy as np
 import cv2
 import mbiocv2 as mb
 
+"""
 # pylint: disable=C0111
 # ↑プログラムの説明ドキュメントがないよ！というエラーの防止
-# pylint: disable=W0312
-# ↑Found indentation with tabs instead of spacesを防止
-
-# No space allowed after bracket
+"""
+# pylint: disable=E1121
+# ↑Too many positional arguments for method call を防止
 
 MIN_MATCH_COUNT = 10
 RATIO = 0.5
+
+#対応拡張子リスト
 SPRT_EXT_LIST = ["png", "jp*", "bmp"]
 
+
+class PATH_FETCH_FAILED(Exception):
+	"""
+	パス取得失敗
+	"""
+	def __str__(self):
+		return "パス取得失敗"
+
+class FILENAME_DUPLICATE(Exception):
+	"""
+	ファイル名重複
+	"""
+	def __str__(self):
+		return "ファイル名重複"
+
+class ORIG_DUPLICATE(Exception):
+	"""
+	orig重複
+	"""
+	def __str__(self):
+		return "orig重複"
+
+class ORIG_NOTHING(Exception):
+	"""
+	origなし
+	"""
+	def __str__(self):
+		return "origなし"
+
+def get_filename_list(dirname):
+	"""
+		ファイル名リストを取得する。
+
+		Returns
+		-------
+		filename_list : list
+			ファイル名リスト
+
+		Raises
+		------
+		PATH_FETCH_FAILED
+			パス取得失敗
+	"""
+
+	# 対応拡張子リストをスキャンの為に変形
+	condition = [".*"+ f for f in SPRT_EXT_LIST]
+	print(f"[debug]{'|'.join(condition)}")
+
+	# ディレクトリから種類を問わずにファイルを検索しリスト化
+	law_filename_list = os.listdir(dirname)
+	filename_list = [f for f in law_filename_list if os.path.isfile(os.path.join(dirname, f))]
+	print(f"[debug]{filename_list}")
+
+	# 対応拡張子のみのリストへ加工
+	filename_list = [f for f in filename_list if re.match("|".join(condition), f)]
+	print(f"[debug]{filename_list}")
+
+	return filename_list
+
+
+def check_filename_list(filename_list):
+	"""
+		ファイル名リストをチェックし
+		様々なエラーをあぶりだす。
+
+		Parameters
+		----------
+		filename_list : list
+			ファイル名リスト
+
+		Raises
+		------
+		ORIG_NOTHING
+			origなし
+		ORIG_DUPLICATE
+			orig重複
+		FILENAME_DUPLICATE
+			ファイル名重複
+			ファイル名重複は処理ミスを引き起こす。
+	"""
+
+	filename_list_no_ext = [os.path.splitext(f)[0] for f in filename_list]
+	print(filename_list_no_ext)
+
+
+
+	if not "orig" in filename_list_no_ext:
+		raise ORIG_NOTHING
+
+	elif filename_list_no_ext.count("orig") >1:
+		raise ORIG_DUPLICATE
+
+	elif len(filename_list_no_ext) != len(set(filename_list_no_ext)):
+		raise FILENAME_DUPLICATE
+
+
 def ex_img(img, multiple = 2):
-	#===========================================================
-	# 表示用の余白あり画像の作成
-	# multiple : 何倍の大きさの画像にするか
-	#===========================================================
+	"""
+		表示用の余白あり画像の作成
+
+		Parameters
+		----------
+		img : OpemCV image array
+			OpenCVの画像配列
+
+		multiple : int[倍], オプション
+			何倍の余白とするかの設定
+			デフォルトでは2
+
+		Returns
+		-------
+		result : OpemCV image array
+			OpenCVの画像配列
+	"""
 
 	h, w, ch = img.shape
 
@@ -34,45 +151,74 @@ def ex_img(img, multiple = 2):
 
 	ex_h, ex_w = int(h*multiple), int(w*multiple)
 
-	ex_img = np.zeros( (ex_h, ex_w, ch), dtype=np.uint8 )
-	ex_img[top:bottom, left:right, :] = img
+	result = np.zeros( (ex_h, ex_w, ch), dtype=np.uint8 )
+	result[top:bottom, left:right, :] = img
 
-	return ex_img
+	return result
 
 
-def trim_img(img, calc):# トリミング実行
+def trim_img(img, calc):
+	"""
+		trim_calcで計算されたパロメータによってトリミング実行
+
+		Parameters
+		----------
+		img : OpemCV image array
+			OpenCVの画像配列
+
+		calc : [type]
+			[description]
+
+		Returns
+		-------
+		result : OpemCV image array
+			トリミングされた OpenCVの画像配列
+	"""
 	return img[calc[0]:calc[1], calc[2]:calc[3], :]
 
 
-def trim_calc(img):# トリミング計算
+def trim_calc(img):
+	"""
+		トリミング計算
+
+		Parameters
+		----------
+		img : OpemCV image array
+			OpenCVの画像配列
+
+		Returns
+		-------
+		list
+			上下左右のトリミング位置
+	"""
 	for i in range(img.shape[0]):
 		if(
-			(  0 != np.max(img[i,:,:]) ) and
-			(255 != np.min(img[i,:,:]) )
+			( np.max(img[i,:,:]) != 0 ) and
+			( np.min(img[i,:,:]) != 255 )
 		):
 			top = i
 			break
 
 	for i in reversed( range(img.shape[0]) ):
-		if( 
-			(  0 != np.max(img[i,:,:]) ) and
-			(255 != np.min(img[i,:,:]) ) 
+		if(
+			( np.max(img[i,:,:]) != 0 ) and
+			( np.min(img[i,:,:]) != 255 )
 		):
 			bottom = i
 			break
 
 	for i in range(img.shape[1]):
-		if( 
-			(  0 != np.max(img[:,i,:]) ) and
-			(255 != np.min(img[:,i,:]) )
+		if(
+			( np.max(img[:,i,:]) != 0 ) and
+			( np.min(img[:,i,:]) != 255 )
 		):
 			left = i
 			break
 
 	for i in reversed( range(img.shape[1]) ):
 		if(
-			(  0 != np.max(img[:,i,:]) ) and
-			(255 != np.min(img[:,i,:]) )
+			( np.max(img[:,i,:]) != 0 ) and
+			( np.min(img[:,i,:]) != 255 )
 		):
 			right = i
 			break
@@ -80,6 +226,15 @@ def trim_calc(img):# トリミング計算
 
 
 def ct_formater():
+	"""
+		検出器、Matcherの生成を一度に行う関数。
+		ココの中身を変えれば、別の物へと一括で変更可能
+
+		Returns
+		-------
+		ctf : list
+			検出器、Matcherをリストにして返す
+	"""
 	# A-KAZE検出器の生成
 	akaze = cv2.AKAZE_create()
 	# Brute-Force Matcher生成
@@ -87,22 +242,37 @@ def ct_formater():
 
 	return akaze, bf
 
- 
-def collage_transformer(file_name, ctf, orig, trim_option="n"):
 
+def collage_transformer(file_name, ctf, orig):
+	"""
+		変形を行う
+
+		Parameters
+		----------
+		file_name : char
+			変形対象のファイル名
+		ctf : list
+			検出器とMatcher
+
+		orig : OpemCV image array
+			オリジナル画像のOpenCVの画像配列
+		Returns
+		-------
+		[type]
+			[description]
+	"""
 	collage = mb.imread(file_name)
-	if (collage is None):
+	if collage is None:
 		print("Warning：[{}]の読み込み失敗".format(file_name) )
 		return 1
 
 
 	print("[{}]の読み込み成功".format(file_name) )
-	
-	#if   (trim_option == 'y'):
+
+
 	collage = trim_img(collage,trim_calc(collage) )
-	#elif (trim_option == 'n'):
-	#	pass
-	
+
+
 	# 特徴量の検出と特徴量ベクトルの計算
 	kp_orig,    des_orig    = ctf[0].detectAndCompute(orig,    None)
 	kp_collage, des_collage = ctf[0].detectAndCompute(collage, None)
@@ -116,20 +286,20 @@ def collage_transformer(file_name, ctf, orig, trim_option="n"):
 		if m.distance < RATIO * n.distance:
 			good.append(m)
 
-	if ( len(good) < MIN_MATCH_COUNT ):
+	if len(good) < MIN_MATCH_COUNT:
 		print("Warning：[{}]は対応点不足".format(file_name) )
 		return 1
 
 	orig_pts    = np.float32( [ kp_orig   [m.queryIdx].pt for m in good ] ).reshape(-1,1,2)
 	collage_pts = np.float32( [ kp_collage[m.trainIdx].pt for m in good ] ).reshape(-1,1,2)
 
-	M, mask = cv2.findHomography(orig_pts, collage_pts, cv2.RANSAC,5.0)
+	M = cv2.findHomography(orig_pts, collage_pts, cv2.RANSAC,5.0)[0]
 
 	h,w = orig.shape[:2]
 
 	converted_collage = cv2.warpPerspective(collage, np.linalg.inv(M), (w, h) )
 
-	
+
 	print("[{}]の変形完了".format(file_name) )
 	file_name = os.path.basename(file_name)
 	print(f"{file_name}:{np.linalg.det(M):1.5}倍？") #現状仮設。後で追加機能含め本実装しよう。
@@ -137,40 +307,39 @@ def collage_transformer(file_name, ctf, orig, trim_option="n"):
 
 
 def main():
+	"""
+	main
+	"""
 	dirname = os.path.dirname(sys.argv[1] )
-	file_name_list = []
-	
+	print(dirname)
 
 
-	for i in SPRT_EXT_LIST:
-		file_name_list += glob.glob( dirname + "/*." + i ) # 拡張子リストに載っている拡張子を条件として検索しリスト化 
-
-
-	if (not len(file_name_list)):
-		input("パス取得失敗　いずれのキーを押して終了")
+	try:
+		filename_list = get_filename_list(dirname)
+		check_filename_list(filename_list)
+	except PATH_FETCH_FAILED as e:
+		input(e)
 		return 1
-	
-	tmp_list = file_name_list
-	file_name_list = []
-	for i in tmp_list:
-		file_name_list.append(os.path.basename(i) )
-
-		
-	
-	if ( 1 < len( [i for i in file_name_list if 'orig' in i] )  ):
-		input("Error：origが複数あります")
+	except FILENAME_DUPLICATE as e:
+		input(e)
+		return 1
+	except ORIG_DUPLICATE as e:
+		input(e)
+		return 1
+	except ORIG_NOTHING as e:
+		input(e)
 		return 1
 
-	else:
-		orig_file      = [i for i in file_name_list if     'orig' in i]
-		file_name_list = [i for i in file_name_list if not 'orig' in i]
+
+	orig_file     = [i for i in filename_list if     'orig' in i]
+	filename_list = [i for i in filename_list if not 'orig' in i]
 
 
 	# 合成元画像
 	orig = ex_img( mb.imread(os.path.join(dirname, "".join(orig_file) ) ),3 )
-	if (orig is None):# 原画の読み込みに失敗したならば中止
+	if orig is None:# 原画の読み込みに失敗したならば中止
 		print("Error：原画の読み込みに失敗")
-		return 1 
+		return 1
 	else:
 		print("原画の読み込みに成功")
 
@@ -179,26 +348,30 @@ def main():
 
 	ctf = ct_formater()
 	collages = []
-	len_fn_list = len(file_name_list)
+	len_fn_list = len(filename_list)
 
 	# 処理開始
-	for index, file_name in enumerate(file_name_list,1):# 1から始まるインデックス付きでfile_name_listを走査
+	# 1から始まるインデックス付きでfilename_listを走査
+	for index, file_name in enumerate(filename_list,1):
 		# 部品画像
 		print(f"file_nameは[{file_name}]")
 		file_name = "".join(file_name)
 
 		print("[{}]の変形開始{:^5}/{:^5}".format(file_name, index, len_fn_list ) )
-		result = collage_transformer(os.path.join(dirname, "".join(file_name) ), ctf, orig)
-		if( 1!= result ):
+		result = collage_transformer(
+			os.path.join(dirname, file_name ),
+			ctf, orig
+		)
+		if result != 1:
 			success_count += 1
 			collages.append(result)
 			print("[{}]の変形成功 全体{:^5}/{:^5} 成功{:^5}/{:^5}".format(
-					file_name, 
-					index, len_fn_list, 
-					success_count, len_fn_list 
+					file_name,
+					index, len_fn_list,
+					success_count, len_fn_list
 				)
 			)
-			
+
 		else:
 			print("[{}]の変形失敗 全体{:^5}/{:^5}".format(file_name, index, len_fn_list) )
 
@@ -208,7 +381,7 @@ def main():
 	tmp_image = orig
 	for i in collages:
 		tmp_image = cv2.addWeighted(tmp_image, 0.5, i[1], 0.5, 0)
-	
+
 	# トリミングの実行
 	trim = trim_calc(tmp_image)
 
@@ -218,14 +391,15 @@ def main():
 	os.makedirs(dirname, exist_ok=True)
 	mb.imwrite( os.path.join(dirname,"orig.png"), trim_img(orig,trim) )
 
-	for index, img in enumerate(collages,1):# 1から始まるインデックス付きでfile_name_listを走査
-		tmp_file_name = dirname+ os.path.splitext(img[0])[0] +".png" 
+	# 1から始まるインデックス付きでfilename_listを走査
+	for index, img in enumerate(collages,1):
+		tmp_file_name = dirname+ os.path.splitext(img[0])[0] +".png"
 		mb.imwrite(
 			tmp_file_name,
 			trim_img(img[1],trim)
 		)
 		print("[{}]の書き込み完了 {:^5}/{:^5}".format(tmp_file_name, index, success_count ) )
-	
+
 	input("全書き込み終了")
 
 
